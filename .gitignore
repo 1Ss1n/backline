@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Generated files
+storage/
+**/storage/
+
+# Audio / temporary files
+*.mp3
+*.wav
+*.flac
+*.ogg
+*.m4a
+
+# Test outputs
+test-output/
+python-service/test-output/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+
+# Build
+dist/
+build/

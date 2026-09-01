@@ -1,0 +1,11 @@
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+python-multipart==0.0.9
+torch>=2.1.0
+torchaudio>=2.1.0
+soundfile==0.12.1
+numpy<2.0
+
+# Mel-Band RoFormer : installer depuis le repo officiel (pas de paquet pip stable)
+# pip install git+https://github.com/lucidrains/BS-RoFormer  (implémentation de référence)
+# ou récupérer les poids pré-entraînés depuis HuggingFace / le repo listé dans le README
