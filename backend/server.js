@@ -7,12 +7,14 @@ import { fileURLToPath } from 'node:url'
 import separateRouter from './routes/separate.js'
 import recognizeRouter from './routes/recognize.js'
 import lyricsRouter from './routes/lyrics.js'
+import sessionsRouter from './routes/sessions.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const PORT = process.env.PORT || 4000
 
 const app = express()
 app.use(cors())
+app.use(express.json({ limit: '1mb' }))
 
 // Sert les stems séparés (fichiers wav/mp3 générés) de façon statique
 app.use('/stems', express.static(path.join(__dirname, 'storage', 'stems')))
@@ -20,6 +22,7 @@ app.use('/stems', express.static(path.join(__dirname, 'storage', 'stems')))
 app.use('/api/separate', separateRouter)
 app.use('/api/recognize', recognizeRouter)
 app.use('/api/lyrics', lyricsRouter)
+app.use('/api/sessions', sessionsRouter)
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }))
 

@@ -39,6 +39,7 @@ export async function separateStems(filePath, originalName) {
   fs.writeFileSync(path.join(stemsDir, instruName), Buffer.from(instru_base64, 'base64'))
 
   return {
+    id: jobId,
     vocalUrl: `/stems/${vocalName}`,
     instruUrl: `/stems/${instruName}`,
   }

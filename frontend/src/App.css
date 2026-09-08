@@ -184,6 +184,16 @@ body {
   pointer-events: none;
 }
 
+.audio-spectrum {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  mask-image: linear-gradient(to bottom, transparent, black 22%, black 78%, transparent);
+}
+
 .track-meta {
   font-family: var(--font-mono);
   font-size: 12px;
@@ -317,6 +327,21 @@ body {
   font-size: 11px;
   color: var(--ink);
 }
+
+.track-seek { position:absolute; z-index:2; left:clamp(24px,7vw,96px); right:clamp(24px,7vw,96px); bottom:26px; display:flex; align-items:center; gap:12px; color:var(--ink-muted); font:10px var(--font-mono); }
+.track-seek input { flex:1; height:4px; appearance:none; -webkit-appearance:none; border-radius:99px; outline:none; cursor:pointer; background:linear-gradient(to right,var(--amber) 0%,var(--amber) var(--seek-progress,0%),var(--panel-line) var(--seek-progress,0%),var(--panel-line) 100%); }
+.track-seek input::-webkit-slider-thumb { appearance:none; -webkit-appearance:none; width:11px; height:11px; border-radius:50%; background:var(--ink); opacity:0; transition:opacity .15s ease,transform .15s ease; }.track-seek input:hover::-webkit-slider-thumb,.track-seek input:focus-visible::-webkit-slider-thumb { opacity:1; transform:scale(1.15); }
+.track-seek input::-moz-range-thumb { width:11px; height:11px; border:0; border-radius:50%; background:var(--ink); opacity:0; }.track-seek input:hover::-moz-range-thumb,.track-seek input:focus-visible::-moz-range-thumb { opacity:1; }
+.track-seek input:disabled { cursor:default; opacity:.45; }
+
+.lyrics-sync { display:flex; flex-direction:column; align-items:center; gap:8px; }
+.sync-controls { display:flex; align-items:center; border:1px solid var(--panel-line); border-radius:8px; overflow:hidden; background:var(--stage-1); }
+.sync-controls button { height:34px; min-width:32px; border:0; border-right:1px solid var(--panel-line); background:transparent; color:var(--ink); cursor:pointer; font:600 16px var(--font-ui); }
+.sync-controls button:last-child { border-right:0; }
+.sync-controls button:hover { color:var(--amber); background:rgba(255,176,32,.08); }
+.sync-controls .sync-value { min-width:56px; color:var(--ink-muted); font:11px var(--font-mono); }
+.sync-controls .sync-value:hover { color:var(--ink); }
+.sync-hint { color:var(--ink-muted); font:9px var(--font-mono); }
 
 .error-banner {
   width: min(560px, 88vw);

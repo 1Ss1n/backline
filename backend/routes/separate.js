@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { separateStems } from '../services/stemService.js'
+import { createSession } from '../services/sessionStore.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const uploadDir = path.join(__dirname, '..', 'storage', 'uploads')
@@ -25,8 +26,9 @@ router.post('/', upload.single('audio'), async (req, res) => {
 
   try {
     // Délègue l'inférence au micro-service Python qui héberge Mel-Band RoFormer
-    const { vocalUrl, instruUrl } = await separateStems(req.file.path, req.file.originalname)
-    res.json({ vocalUrl, instruUrl })
+    const { id, vocalUrl, instruUrl } = await separateStems(req.file.path, req.file.originalname)
+    createSession({ id, stems: { vocalUrl, instruUrl }, originalName: req.file.originalname })
+    res.json({ id, vocalUrl, instruUrl })
   } catch (err) {
     console.error('[separate] échec:', err)
     res.status(502).json({ error: "La séparation des pistes a échoué côté service audio." })
