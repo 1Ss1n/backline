@@ -8,7 +8,8 @@ export default defineConfig({
     proxy: {
       // Toutes les requêtes /api sont redirigées vers le backend Express
       '/api': 'http://localhost:4000',
-      '/stems': 'http://localhost:4000'
+      '/stems': 'http://localhost:4000',
+      '/performances': 'http://localhost:4000'
     }
   }
 })

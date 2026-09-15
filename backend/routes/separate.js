@@ -27,7 +27,7 @@ router.post('/', upload.single('audio'), async (req, res) => {
   try {
     // Délègue l'inférence au micro-service Python qui héberge Mel-Band RoFormer
     const { id, vocalUrl, instruUrl } = await separateStems(req.file.path, req.file.originalname)
-    createSession({ id, stems: { vocalUrl, instruUrl }, originalName: req.file.originalname })
+    createSession({ id, stems: { vocalUrl, instruUrl }, originalName: req.file.originalname, ownerId: req.user.id })
     res.json({ id, vocalUrl, instruUrl })
   } catch (err) {
     console.error('[separate] échec:', err)

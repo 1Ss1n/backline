@@ -4,6 +4,7 @@ node_modules/
 
 # Python
 .venv/
+python-service/.venv-basic-pitch/
 __pycache__/
 *.pyc
 .pytest_cache/

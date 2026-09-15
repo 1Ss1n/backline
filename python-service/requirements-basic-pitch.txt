@@ -1,0 +1,3 @@
+# Install this file only in python-service/.venv-basic-pitch.
+# It is deliberately separate from requirements.txt to preserve the FastAPI/Spleeter runtime.
+basic-pitch==0.4.0

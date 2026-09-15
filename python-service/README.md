@@ -41,3 +41,21 @@ Réponse :
   "mock": true
 }
 ```
+
+## Prototype Basic Pitch (`/pitch-test`)
+
+Le laboratoire de détection de notes est isolé du pipeline principal. Basic Pitch
+est exécuté depuis son propre environnement pour ne pas modifier les dépendances
+du service FastAPI/Spleeter :
+
+```powershell
+..\.venv\Scripts\python.exe -m venv .venv-basic-pitch
+.\.venv-basic-pitch\Scripts\python.exe -m pip install --upgrade pip
+.\.venv-basic-pitch\Scripts\python.exe -m pip install -r requirements-basic-pitch.txt
+```
+
+Le nouvel endpoint `POST /analyze-vocals` exécute : audio original → Spleeter →
+`vocals.wav` temporaire unique → Basic Pitch → JSON. Les données brutes des notes
+sont conservées ; `amplitude` est retournée lorsqu'elle est fournie par Basic Pitch,
+mais n'est pas présentée comme une confidence. Les fichiers temporaires sont détruits
+après chaque requête.

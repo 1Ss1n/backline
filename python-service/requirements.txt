@@ -5,6 +5,10 @@ torch>=2.1.0
 torchaudio>=2.1.0
 soundfile==0.12.1
 numpy<2.0
+faster-whisper>=1.1,<2
+
+# Basic Pitch lives in python-service/.venv-basic-pitch to avoid altering the
+# FastAPI/Spleeter environment. See README for the exact installation command.
 
 # Mel-Band RoFormer : installer depuis le repo officiel (pas de paquet pip stable)
 # pip install git+https://github.com/lucidrains/BS-RoFormer  (implémentation de référence)

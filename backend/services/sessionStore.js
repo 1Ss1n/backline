@@ -8,15 +8,20 @@ fs.mkdirSync(sessionsDir, { recursive: true })
 
 const sessionPath = (id) => path.join(sessionsDir, `${id}.json`)
 
-export function createSession({ id, stems, originalName }) {
+export function createSession({ id, stems, originalName, ownerId }) {
+  if (!ownerId) throw new Error('Une session doit Ãªtre associÃ©e Ã  un utilisateur.')
   const session = {
     id,
+    ownerId,
     stems,
     originalName,
     title: path.parse(originalName).name,
     artist: 'Artiste inconnu',
     coverUrl: null,
     lyricsLines: [],
+    lyricsSegments: [],
+    lyricsSource: 'none',
+    performances: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }
@@ -24,10 +29,11 @@ export function createSession({ id, stems, originalName }) {
   return session
 }
 
-export function listSessions() {
+export function listSessions(ownerId) {
   return fs.readdirSync(sessionsDir)
     .filter((name) => name.endsWith('.json'))
     .map((name) => JSON.parse(fs.readFileSync(path.join(sessionsDir, name), 'utf8')))
+    .filter((session) => session.ownerId === ownerId)
     .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
 }
 
@@ -35,6 +41,19 @@ export function getSession(id) {
   const file = sessionPath(id)
   if (!fs.existsSync(file)) return null
   return JSON.parse(fs.readFileSync(file, 'utf8'))
+}
+
+export function findPerformance(ownerId, performanceId) {
+  for (const session of listSessions(ownerId)) {
+    const performance = (session.performances || []).find((item) => item.id === performanceId)
+    if (performance) return { session, performance }
+  }
+  return null
+}
+
+export function findSessionByAssetUrl(assetUrl) {
+  return fs.readdirSync(sessionsDir).filter((name) => name.endsWith('.json')).map((name) => JSON.parse(fs.readFileSync(path.join(sessionsDir, name), 'utf8')))
+    .find((session) => Object.values(session.stems || {}).includes(assetUrl) || (session.performances || []).some((performance) => performance.url === assetUrl)) || null
 }
 
 export function updateSession(id, changes) {
@@ -45,8 +64,10 @@ export function updateSession(id, changes) {
   return updated
 }
 
-export function clearSessions() {
+export function clearSessions(ownerId) {
   for (const name of fs.readdirSync(sessionsDir)) {
-    if (name.endsWith('.json')) fs.unlinkSync(path.join(sessionsDir, name))
+    if (!name.endsWith('.json')) continue
+    const file = path.join(sessionsDir, name)
+    if (JSON.parse(fs.readFileSync(file, 'utf8')).ownerId === ownerId) fs.unlinkSync(file)
   }
 }
