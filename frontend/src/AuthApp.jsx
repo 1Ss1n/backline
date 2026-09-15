@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import StudioApp from './StudioApp.jsx'
 import './AuthApp.css'
+import './BacklineTheme.css'
 
 const api = (url, options = {}) => fetch(url, { credentials: 'include', headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options })
 

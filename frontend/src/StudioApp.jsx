@@ -6,6 +6,8 @@ import ProfilePage from './components/ProfilePage.jsx'
 import { parseLRC } from './utils/lrc.js'
 import './App.css'
 import './StudioApp.css'
+import './BacklineTheme.css'
+import './SidebarHover.css'
 
 const STEPS = [
   { key: 'separate', label: 'Séparation audio', detail: 'Voix et instrumentale' },
@@ -267,8 +269,8 @@ export default function StudioApp({ user, onLogout, onUserUpdated }) {
 
   return (
     <div className="studio-app" data-theme={theme}>
-      <aside className="studio-sidebar">
-        <div className="studio-brand"><span className="brand-mark"><Icon name="logo" /></span><span>backline</span></div>
+      <aside className="studio-sidebar collapsed">
+        <div className="studio-brand"><span className="brand-mark"><Icon name="logo" /></span></div>
         <nav className="studio-nav" aria-label="Navigation principale">
           <button className={`nav-item ${activeView === 'studio' ? 'active' : ''}`} onClick={startOver}><Icon name="logo" />Studio</button>
           <button className={`nav-item ${activeView === 'library' ? 'active' : ''}`} onClick={() => setActiveView('library')}><Icon name="library" />Mes morceaux</button>
@@ -303,7 +305,7 @@ export default function StudioApp({ user, onLogout, onUserUpdated }) {
           {sessions.length ? <div className="library-grid">{sessions.map((session) => <button key={session.id} className="library-card" onClick={() => openSession(session.id)}><span className="library-card-cover"><Icon name="library" size={28} />{session.coverUrl && <img src={session.coverUrl} alt="" />}</span><span className="library-card-info"><b>{session.title}</b><small>{session.artist || 'Artiste inconnu'}</small><em>Ouvrir la session <span>→</span></em></span></button>)}</div> : <div className="library-empty"><span className="session-art"><Icon name="library" size={20} /></span><h2>Votre bibliothèque est vide.</h2><p>Importez un morceau pour créer votre première session karaoke.</p><button className="new-track" onClick={startOver}><Icon name="plus" size={17} />Importer un morceau</button></div>}
         </section> : ready ? <div className="studio-player"><Player trackInfo={trackInfo} stems={stems} lyricsLines={lyricsLines} lyricsSource={lyricsSource} sessionId={activeSessionId} perfectPitch={sessions.find((session) => session.id === activeSessionId)?.perfectPitch} onPerformanceSaved={savePerformanceToLibrary} onListenToPerformance={listenToSavedPerformance} /></div> : (
           <div className="studio-content">
-            <section className="upload-panel"><div className="panel-heading"><div><p className="section-kicker">01 · Importer</p><h2>Transformez votre morceau<br />en session karaoke.</h2></div><span className="format-pill">MP3 · 20 Mo max</span></div><label className="perfect-pitch-option"><input type="checkbox" checked={perfectPitchRequested} onChange={(event) => setPerfectPitchRequested(event.target.checked)} /><span><b>Perfect Pitch</b><small>Analyse votre justesse en temps réel avec le microphone.</small></span></label><Uploader onFileSelected={runPipeline} /></section>
+            <section className="upload-panel"><div className="panel-heading"><div><p className="section-kicker">01 · Créer une session</p><h2>Ta musique.<br />Ta voix. Ta scène.</h2><p>Importe un morceau : Backline prépare les stems, les paroles et ta session karaoke.</p></div><span className="format-pill">MP3 · 20 Mo max</span></div><div className="singing-mode-picker" role="radiogroup" aria-label="Mode de chant"><button type="button" role="radio" aria-checked={!perfectPitchRequested} className={!perfectPitchRequested ? 'selected' : ''} onClick={() => setPerfectPitchRequested(false)}><span>01</span><b>Karaoké classique</b><small>Les paroles au centre de la scène.</small></button><button type="button" role="radio" aria-checked={perfectPitchRequested} className={perfectPitchRequested ? 'selected' : ''} onClick={() => setPerfectPitchRequested(true)}><span>02</span><b>Perfect Pitch</b><small>Analyse ta justesse en direct.</small></button></div><Uploader onFileSelected={runPipeline} /></section>
             <aside className="process-panel"><p className="section-kicker">Traitement IA</p><h2>Votre session</h2><p className="process-intro">Chaque piste est préparée pour vous laisser chanter, mixer et suivre les paroles.</p>
               <div className="process-list">{STEPS.map((step, index) => <div className={`process-step ${stepStatus[step.key] || ''}`} key={step.key}><span className="step-number">{stepStatus[step.key] === 'done' ? '✓' : String(index + 1).padStart(2, '0')}</span><div><b>{step.label}</b><small>{stepStatus[step.key] === 'active' ? 'En cours…' : stepStatus[step.key] === 'done' ? 'Terminé' : step.detail}</small></div>{stepStatus[step.key] === 'active' && <span className="spinner" />}</div>)}</div>
               <div className="privacy-note">Vos fichiers sont traités uniquement pour créer votre session.</div>

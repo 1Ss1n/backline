@@ -1,0 +1,15 @@
+.studio-sidebar.collapsed:hover { width:260px; padding-right:16px; padding-left:16px; }
+.studio-sidebar.collapsed:hover .studio-brand { justify-content:flex-start; }
+.studio-sidebar.collapsed:hover .brand-name { display:inline; }
+.studio-sidebar.collapsed:hover .nav-item { justify-content:flex-start; padding-right:12px; padding-left:12px; font-size:14px; }
+.studio-sidebar.collapsed:hover .nav-item svg { width:20px; height:20px; }
+.studio-sidebar.collapsed:hover .friends-sidebar,.studio-sidebar.collapsed:hover .session-library { display:block; }
+.studio-sidebar.collapsed:hover .user-details { display:block; }
+.studio-sidebar.collapsed:hover .profile-arrow { display:inline; }
+.studio-sidebar.collapsed:hover .logout-button { display:block; }
+.studio-sidebar.collapsed:hover .profile-actions { justify-content:initial; }
+.studio-sidebar.collapsed:hover .profile-actions .user-chip { flex:1; padding:7px 8px; }
+.studio-sidebar.collapsed:hover .sidebar-bottom { padding-right:5px; padding-left:5px; }
+.studio-sidebar.collapsed .notification-wrap { display:none; }
+.studio-sidebar.collapsed:hover .notification-wrap { display:block; }
+@media (max-width:820px) { .studio-sidebar.collapsed:hover { width:64px; padding-right:9px; padding-left:9px; }.studio-sidebar.collapsed:hover .brand-name,.studio-sidebar.collapsed:hover .friends-sidebar,.studio-sidebar.collapsed:hover .session-library,.studio-sidebar.collapsed:hover .user-details,.studio-sidebar.collapsed:hover .profile-arrow,.studio-sidebar.collapsed:hover .logout-button { display:none; }.studio-sidebar.collapsed:hover .nav-item { justify-content:center; padding:12px; font-size:0; } }

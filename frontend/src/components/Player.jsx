@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Pause, Play } from 'lucide-react'
 import VolumeKnob from './VolumeKnob.jsx'
 import KaraokeLyrics from './KaraokeLyrics.jsx'
 import AudioSpectrum from './AudioSpectrum.jsx'
@@ -32,6 +33,8 @@ export default function Player({ trackInfo, stems, lyricsLines, lyricsSource, se
   const [recordError, setRecordError] = useState('')
   const [savedPerformance, setSavedPerformance] = useState(null)
   const [trackEnded, setTrackEnded] = useState(false)
+  const [pitchSeekVersion, setPitchSeekVersion] = useState(0)
+  const [pitchRunId, setPitchRunId] = useState(0)
 
   useEffect(() => { if (vocalRef.current) vocalRef.current.volume = vocalVol }, [vocalVol])
   useEffect(() => { if (instruRef.current) instruRef.current.volume = instruVol }, [instruVol])
@@ -124,6 +127,15 @@ export default function Player({ trackInfo, stems, lyricsLines, lyricsSource, se
     if (vocalRef.current) vocalRef.current.currentTime = time
     if (instruRef.current) instruRef.current.currentTime = time
     setCurrentTime(time)
+    setPitchSeekVersion((version) => version + 1)
+  }
+
+  const replayPerfectPitch = () => {
+    const vocal = vocalRef.current; const instru = instruRef.current
+    vocal?.pause(); instru?.pause()
+    if (vocal) vocal.currentTime = 0
+    if (instru) instru.currentTime = 0
+    setCurrentTime(0); setTrackEnded(false); setIsPlaying(false); setPitchRunId((id) => id + 1); setPitchSeekVersion((version) => version + 1)
   }
 
   return <div className="player-workspace">
@@ -132,12 +144,12 @@ export default function Player({ trackInfo, stems, lyricsLines, lyricsSource, se
         <AudioSpectrum audioRef={instruRef} />
         <div className="track-seek"><span>{formatTime(currentTime)}</span><input type="range" min="0" max={duration || 0} step="0.1" value={Math.min(currentTime, duration || currentTime)} style={{ '--seek-progress': `${duration ? Math.min(100, (currentTime / duration) * 100) : 0}%` }} onChange={(event) => seekTo(event.target.value)} disabled={!duration || isRecording} /><span>{formatTime(duration)}</span></div>
         <div className="track-meta">{trackInfo?.title ? <><strong>{trackInfo.title}</strong> — {trackInfo.artist}{lyricsSource === 'whisper' && <small className="generated-lyrics-note">Paroles générées automatiquement</small>}</> : 'Identification en cours…'}</div>
-        <div className="karaoke-stage-content"><div className="karaoke-lyrics-panel"><KaraokeLyrics lines={lyricsLines} currentTime={Math.max(0, currentTime - lyricsDelay)} /></div>{perfectPitch?.rawNotes?.length && <PerfectPitchPanel rawNotes={perfectPitch.rawNotes} currentTime={currentTime} isPlaying={isPlaying} ended={trackEnded} />}</div>
+        <div className="karaoke-stage-content"><div className="karaoke-lyrics-panel"><KaraokeLyrics lines={lyricsLines} currentTime={Math.max(0, currentTime - lyricsDelay)} /></div>{perfectPitch?.rawNotes?.length && <PerfectPitchPanel rawNotes={perfectPitch.rawNotes} currentTime={currentTime} isPlaying={isPlaying} ended={trackEnded} seekVersion={pitchSeekVersion} runId={pitchRunId} onReplay={replayPerfectPitch} />}</div>
       </div>
       <audio ref={vocalRef} src={getAudioUrl(stems?.vocalUrl)} onTimeUpdate={handleTimeUpdate} onLoadedMetadata={() => setDuration(vocalRef.current?.duration ?? 0)} onEnded={() => { setIsPlaying(false); setTrackEnded(true); stopRecording() }} />
       <audio ref={instruRef} src={getAudioUrl(stems?.instruUrl)} />
       <div className="console">
-        <div className="transport"><button onClick={togglePlay} disabled={isRecording}>{isRecording ? '●' : isPlaying ? 'Ⅱ' : '▶'}</button><span className="timecode">{isRecording ? 'REC' : formatTime(currentTime)}</span></div>
+        <div className="transport"><button onClick={togglePlay} disabled={isRecording} aria-label={isPlaying ? 'Mettre en pause' : 'Lire le morceau'}>{isRecording ? '●' : isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />}</button><span className="timecode">{isRecording ? 'REC' : formatTime(currentTime)}</span></div>
         <div className="record-unit"><button type="button" className={`record-button ${recordArmed ? 'armed' : ''} ${isRecording ? 'recording' : ''}`} onClick={armRecording} disabled={isRecording || isSaving}>{isRecording ? '● Enregistrement' : recordArmed ? 'Annuler' : '● Enregistrer'}</button><span>{recordArmed && !isRecording ? 'Appuyez sur lecture' : isSaving ? 'Sauvegarde…' : 'Microphone'}</span></div>
         <VolumeKnob label="Voix" variant="vocal" value={vocalVol} onChange={setVocalVol} />
         <VolumeKnob label="Instru" variant="instru" value={instruVol} onChange={setInstruVol} />

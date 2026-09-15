@@ -1,5 +1,7 @@
 
 import { useRef, useState, useCallback } from 'react'
+import { AudioLines, FileAudio, Upload } from 'lucide-react'
+import { ArrowFillButton } from './block/arrow-fill-button.jsx'
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024 // 20 Mo
 
@@ -68,9 +70,9 @@ export default function Uploader({ onFileSelected }) {
 
   return (
     <div className="uploader">
-      <div className="eyebrow">Étape 1</div>
+      <div className="eyebrow">01 · Nouvelle session</div>
 
-      <h1>Dépose ton morceau</h1>
+      <h1>Crée ton karaoké.</h1>
 
       <p className="sub">
         MP3 — on isole la voix, on affiche les paroles, tu règles le mix.
@@ -97,44 +99,29 @@ export default function Uploader({ onFileSelected }) {
         }}
         onDrop={handleDrop}
       >
+        <div className="upload-orbit"><AudioLines size={28} /></div>
         {selectedFile ? (
           <>
-            <div className="cta">
-              {selectedFile.name}
-            </div>
+            <div className="cta"><FileAudio size={20} />{selectedFile.name}</div>
 
             <div className="icon">
               {(selectedFile.size / (1024 * 1024)).toFixed(1)} Mo · MP3
             </div>
 
-            <button
-              type="button"
-              className="choose-button"
-              onClick={openFilePicker}
-            >
-              Choisir un autre morceau
-            </button>
+            <ArrowFillButton as="button" onClick={openFilePicker} bgColor="var(--accent)" textColor="var(--accent-ink)" fillBgColor="#fff" fillTextColor="#111">Choisir un autre morceau</ArrowFillButton>
           </>
         ) : (
           <>
-            <div className="cta">
-              Glisse un fichier .mp3 ici
-            </div>
+            <div className="cta">Dépose ton morceau ici</div>
 
             <div className="or">
               ou
             </div>
 
-            <button
-              type="button"
-              className="choose-button"
-              onClick={openFilePicker}
-            >
-              Choisir un fichier
-            </button>
+            <ArrowFillButton as="button" onClick={openFilePicker} bgColor="var(--accent)" textColor="var(--accent-ink)" fillBgColor="#fff" fillTextColor="#111"><Upload size={15} /> Choisir un fichier</ArrowFillButton>
 
             <div className="icon">
-              FORMAT ACCEPTÉ · MP3 · MAX 20 MO
+              MP3 · MAX 20 MO
             </div>
           </>
         )}

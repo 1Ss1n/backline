@@ -1,4 +1,5 @@
 import { getActiveLineIndex } from '../utils/lrc'
+import TextFillAnimation from './TextFillAnimation'
 
 /**
  * Affiche la ligne courante + la suivante. Le mot "chanté" est éclairé
@@ -26,9 +27,7 @@ export default function KaraokeLyrics({ lines, currentTime }) {
     <>
       <div className="lyrics-line current">
         {words.map((w, i) => (
-          <span key={i} className={`word ${i < litCount ? 'lit' : ''}`}>
-            {w}
-          </span>
+          <TextFillAnimation key={i} className="word" filled={i < litCount}>{w}</TextFillAnimation>
         ))}
       </div>
       {next && <div className="lyrics-line next">{next.text}</div>}
