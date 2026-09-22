@@ -25,7 +25,7 @@ router.post('/', upload.single('audio'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Aucun fichier reçu.' })
 
   try {
-    // Délègue l'inférence au micro-service Python qui héberge Mel-Band RoFormer
+    // Délègue la séparation au micro-service Python Spleeter.
     const { id, vocalUrl, instruUrl } = await separateStems(req.file.path, req.file.originalname)
     createSession({ id, stems: { vocalUrl, instruUrl }, originalName: req.file.originalname, ownerId: req.user.id })
     res.json({ id, vocalUrl, instruUrl })

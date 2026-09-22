@@ -7,6 +7,8 @@ export default defineConfig({
   resolve: { alias: { '@': path.resolve(import.meta.dirname, './src') } },
   server: {
     port: 5173,
+    // Required only while a temporary Cloudflare Quick Tunnel is active.
+    allowedHosts: ['.trycloudflare.com'],
     proxy: {
       // Toutes les requêtes /api sont redirigées vers le backend Express
       '/api': 'http://localhost:4000',

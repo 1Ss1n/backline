@@ -1,0 +1,3 @@
+# Spleeter is launched on demand by python-service/main.py with Docker.
+# No persistent experimental audio-separation service is required.
+services: {}

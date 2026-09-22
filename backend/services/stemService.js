@@ -11,14 +11,12 @@ fs.mkdirSync(stemsDir, { recursive: true })
 const STEM_SERVICE_URL = process.env.STEM_SERVICE_URL || 'http://localhost:8000'
 
 /**
- * Envoie le MP3 au micro-service Python (FastAPI) qui fait tourner
- * Mel-Band RoFormer sur GPU, récupère les deux stems (voix / instru)
- * et les expose via /stems/*.
+ * Envoie le MP3 au micro-service Python Spleeter, récupère les deux stems
+ * (voix / instrumental) et les expose via /stems/*.
  */
 export async function separateStems(filePath, originalName) {
   const form = new FormData()
   form.append('file', fs.createReadStream(filePath), originalName)
-
   const response = await fetch(`${STEM_SERVICE_URL}/separate`, {
     method: 'POST',
     body: form,

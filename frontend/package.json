@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "tunnel": "node scripts/startTunnel.mjs",
     "build": "vite build",
-    "test": "node --test src/utils/pitchMath.test.js src/utils/perfectPitchScoring.test.js",
+    "test": "node --test src/utils/pitchMath.test.js src/utils/perfectPitchScoring.test.js src/utils/lyricsEditor.test.js",
     "preview": "vite preview"
   },
   "dependencies": {

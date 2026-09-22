@@ -15,6 +15,8 @@ import friendsRouter from './routes/friends.js'
 import usersRouter from './routes/users.js'
 import pitchTestRouter from './routes/pitchTest.js'
 import transcribeRouter from './routes/transcribe.js'
+import separationLabRouter from './routes/separationLab.js'
+import lyricsEditorRouter from './routes/lyricsEditor.js'
 import { findSessionByAssetUrl } from './services/sessionStore.js'
 import { backfillUsernames, ensureAdmin } from './services/authStore.js'
 import { areFriends } from './services/friendStore.js'
@@ -32,6 +34,9 @@ app.use('/api/pitch-test', pitchTestRouter)
 app.use('/api/transcribe', requireUser, transcribeRouter)
 app.use('/api/friends', requireUser, friendsRouter)
 app.use('/api/users', requireUser, usersRouter)
+app.use('/api/separation-lab', requireUser, separationLabRouter)
+app.use('/api/sessions', requireUser, lyricsEditorRouter)
+
 
 // Sert les stems séparés (fichiers wav/mp3 générés) de façon statique
 app.get('/stems/:file', requireUser, (req, res) => {

@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { getActiveLineIndex } from '../utils/lrc'
 import TextFillAnimation from './TextFillAnimation'
 
@@ -8,16 +9,19 @@ import TextFillAnimation from './TextFillAnimation'
  * mot-par-mot — suffisant en LRC standard ligne par ligne).
  */
 export default function KaraokeLyrics({ lines, currentTime }) {
-  if (!lines || lines.length === 0) {
+  const timeline = useMemo(() => Array.isArray(lines) ? [...lines].sort((left, right) => (left.start ?? left.time ?? 0) - (right.start ?? right.time ?? 0)) : [], [lines])
+  if (timeline.length === 0) {
     return <div className="lyrics-line">En attente des paroles…</div>
   }
 
-  const activeIdx = getActiveLineIndex(lines, currentTime)
-  const current = lines[activeIdx]
-  const next = lines[activeIdx + 1]
+  const activeIdx = getActiveLineIndex(timeline, currentTime)
+  const current = activeIdx >= 0 ? timeline[activeIdx] : null
+  const next = activeIdx >= 0
+    ? timeline[activeIdx + 1]
+    : timeline.find((line) => (line.start ?? line.time ?? 0) > currentTime)
 
-  const lineStart = current?.time ?? 0
-  const lineEnd = next?.time ?? lineStart + 4
+  const lineStart = current?.start ?? current?.time ?? 0
+  const lineEnd = current?.end ?? next?.start ?? next?.time ?? lineStart + 4
   const progress = Math.min(1, Math.max(0, (currentTime - lineStart) / (lineEnd - lineStart || 1)))
 
   const words = (current?.text || '').split(' ').filter(Boolean)

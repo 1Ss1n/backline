@@ -23,8 +23,10 @@ export function parseLRC(lrcText) {
 export function getActiveLineIndex(lines, currentTime) {
   let idx = -1
   for (let i = 0; i < lines.length; i++) {
-    if (lines[i].time <= currentTime) idx = i
-    else break
+    const start = lines[i].start ?? lines[i].time
+    const end = lines[i].end
+    if (start > currentTime) break
+    if (end === undefined || currentTime < end) idx = i
   }
   return idx
 }

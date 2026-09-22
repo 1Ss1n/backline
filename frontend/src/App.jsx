@@ -4,7 +4,7 @@ import Player from './components/Player.jsx'
 import { parseLRC } from './utils/lrc.js'
 
 const STEPS = [
-  { key: 'separate', label: 'Séparation des pistes (Mel-Band RoFormer)' },
+  { key: 'separate', label: 'Séparation des pistes (Spleeter)' },
   { key: 'recognize', label: 'Identification du morceau' },
   { key: 'lyrics', label: 'Recherche des paroles synchronisées' },
 ]

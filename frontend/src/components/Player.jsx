@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Pause, Play } from 'lucide-react'
+import { FilePenLine, Pause, Play } from 'lucide-react'
 import VolumeKnob from './VolumeKnob.jsx'
 import KaraokeLyrics from './KaraokeLyrics.jsx'
 import AudioSpectrum from './AudioSpectrum.jsx'
@@ -15,7 +15,7 @@ function getAudioUrl(path) {
   return /^https?:\/\//i.test(path) ? path : `${import.meta.env.VITE_API_URL || ''}${path}`
 }
 
-export default function Player({ trackInfo, stems, lyricsLines, lyricsSource, sessionId, perfectPitch, onPerformanceSaved, onListenToPerformance }) {
+export default function Player({ trackInfo, stems, lyricsLines, lyricsSource, sessionId, perfectPitch, onPerformanceSaved, onListenToPerformance, onEditLyrics }) {
   const vocalRef = useRef(null)
   const instruRef = useRef(null)
   const recorderRef = useRef(null)
@@ -143,7 +143,7 @@ export default function Player({ trackInfo, stems, lyricsLines, lyricsSource, se
       <div className={`stage ${perfectPitch?.rawNotes?.length ? 'stage-with-perfect-pitch' : ''}`}>
         <AudioSpectrum audioRef={instruRef} />
         <div className="track-seek"><span>{formatTime(currentTime)}</span><input type="range" min="0" max={duration || 0} step="0.1" value={Math.min(currentTime, duration || currentTime)} style={{ '--seek-progress': `${duration ? Math.min(100, (currentTime / duration) * 100) : 0}%` }} onChange={(event) => seekTo(event.target.value)} disabled={!duration || isRecording} /><span>{formatTime(duration)}</span></div>
-        <div className="track-meta">{trackInfo?.title ? <><strong>{trackInfo.title}</strong> — {trackInfo.artist}{lyricsSource === 'whisper' && <small className="generated-lyrics-note">Paroles générées automatiquement</small>}</> : 'Identification en cours…'}</div>
+        <div className="track-meta">{trackInfo?.title ? <><strong>{trackInfo.title}</strong> — {trackInfo.artist}{lyricsSource === 'whisper' && <small className="generated-lyrics-note">Paroles générées automatiquement</small>}{lyricsLines?.length > 0 && sessionId && <button type="button" className="edit-lyrics-button" onClick={onEditLyrics}><FilePenLine size={13} />Modifier les paroles</button>}</> : 'Identification en cours…'}</div>
         <div className="karaoke-stage-content"><div className="karaoke-lyrics-panel"><KaraokeLyrics lines={lyricsLines} currentTime={Math.max(0, currentTime - lyricsDelay)} /></div>{perfectPitch?.rawNotes?.length && <PerfectPitchPanel rawNotes={perfectPitch.rawNotes} currentTime={currentTime} isPlaying={isPlaying} ended={trackEnded} seekVersion={pitchSeekVersion} runId={pitchRunId} onReplay={replayPerfectPitch} />}</div>
       </div>
       <audio ref={vocalRef} src={getAudioUrl(stems?.vocalUrl)} onTimeUpdate={handleTimeUpdate} onLoadedMetadata={() => setDuration(vocalRef.current?.duration ?? 0)} onEnded={() => { setIsPlaying(false); setTrackEnded(true); stopRecording() }} />
