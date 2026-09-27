@@ -5,13 +5,14 @@ const noteId = (note, index) => `${index}:${note.start.toFixed(3)}:${note.end.to
 
 export function usePerfectPitchScoring({ notes, currentTime, isPlaying, microphoneActive, ended, seekVersion, runId }) {
   const [score, setScore] = useState(EMPTY_SCORE)
+  const scoreRef = useRef(EMPTY_SCORE)
   const [lastResult, setLastResult] = useState(null)
   const evaluatedRef = useRef(new Set())
   const activeRef = useRef(null)
   const samplesRef = useRef([])
   const lastTimeRef = useRef(currentTime)
   const skipRef = useRef(false)
-  const reset = useCallback(() => { evaluatedRef.current = new Set(); activeRef.current = null; samplesRef.current = []; skipRef.current = true; setScore(EMPTY_SCORE); setLastResult(null) }, [])
+  const reset = useCallback(() => { evaluatedRef.current = new Set(); activeRef.current = null; samplesRef.current = []; skipRef.current = true; scoreRef.current = EMPTY_SCORE; setScore(EMPTY_SCORE); setLastResult(null) }, [])
 
   useEffect(() => reset(), [runId, reset])
   useEffect(() => { skipRef.current = true; activeRef.current = null; samplesRef.current = [] }, [seekVersion])
@@ -22,7 +23,8 @@ export function usePerfectPitchScoring({ notes, currentTime, isPlaying, micropho
     const result = evaluateNotePerformance({ referenceNote: active.note, pitchSamples: samplesRef.current, octaveTolerance: true })
     evaluatedRef.current.add(active.id)
     if (!result) return
-    setScore((value) => applyNoteResult(value, result))
+    scoreRef.current = applyNoteResult(scoreRef.current, result)
+    setScore(scoreRef.current)
     setLastResult(result)
   }, [microphoneActive])
 
@@ -45,5 +47,6 @@ export function usePerfectPitchScoring({ notes, currentTime, isPlaying, micropho
     samplesRef.current.push({ time: currentTime, midi: sample.midi })
   }, [currentTime, isPlaying, microphoneActive])
 
-  return useMemo(() => ({ score, scoreValue: sessionScore(score), lastResult, totalScorableNotes: notes.filter((note) => note.end - note.start >= SCORING_CONFIG.minScorableNoteDuration).length, addSample, reset }), [addSample, lastResult, notes, reset, score])
+  const finish = useCallback(() => { evaluateActive(); return { ...scoreRef.current } }, [evaluateActive])
+  return useMemo(() => ({ score, scoreValue: sessionScore(score), lastResult, totalScorableNotes: notes.filter((note) => note.end - note.start >= SCORING_CONFIG.minScorableNoteDuration).length, addSample, reset, finish }), [addSample, lastResult, notes, reset, score, finish])
 }

@@ -1,10 +1,18 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Uploader from './components/Uploader.jsx'
 import Player from './components/Player.jsx'
 import PerformancePlayer from './components/PerformancePlayer.jsx'
 import ProfilePage from './components/ProfilePage.jsx'
+import UserAvatar from './components/UserAvatar.jsx'
 import LyricsStudio from './components/LyricsStudio.jsx'
+import ChallengesPage from './components/ChallengesPage.jsx'
+import { useChallenges, challengeRequest } from './hooks/useChallenges.js'
+import { Swords, Search } from 'lucide-react'
+import { AppleSpotlight } from './components/block/apple-spotlight.jsx'
 import { parseLRC } from './utils/lrc.js'
+import SoftAurora from './components/rewamp/SoftAurora.jsx'
+import LandscapeOrbToggle from './components/rewamp/LandscapeOrbToggle.jsx'
+import FolderTabCard from './components/rewamp/FolderTabCard.jsx'
 import './App.css'
 import './StudioApp.css'
 import './BacklineTheme.css'
@@ -53,8 +61,7 @@ function Icon({ name, size = 20 }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>
 }
 
-export default function StudioApp({ user, onLogout, onUserUpdated }) {
-  const [theme, setTheme] = useState(() => localStorage.getItem('backline-theme') || 'dark')
+export default function StudioApp({ user, onLogout, onUserUpdated, theme, setTheme }) {
   const [stepStatus, setStepStatus] = useState({})
   const [error, setError] = useState(null)
   const [stems, setStems] = useState(null)
@@ -67,10 +74,21 @@ export default function StudioApp({ user, onLogout, onUserUpdated }) {
   const [activeSessionId, setActiveSessionId] = useState(null)
   const [performances, setPerformances] = useState([])
   const [activeView, setActiveView] = useState('studio')
+  const challengeFeed = useChallenges()
+  const [challengeSelection, setChallengeSelection] = useState(null)
+  const [challengeNoticeError, setChallengeNoticeError] = useState('')
+  const [challengeResponding, setChallengeResponding] = useState(false)
+  const challengeInvites = challengeFeed.items.filter(item => item.status === 'PENDING' && item.challengedUserId === user.id)
+  const openChallenge = selection => { setChallengeSelection(selection); setActiveView('challenges'); setMobileSidebarOpen(false); setNotificationsOpen(false) }
+  const respondToChallenge = async (id, action) => {
+    if (challengeResponding) return
+    setChallengeResponding(true); setChallengeNoticeError('')
+    try { await challengeRequest(`/${id}/${action}`, {}); await challengeFeed.refresh(); if (action === 'accept') openChallenge({ id }) }
+    catch (error) { setChallengeNoticeError(error.message) }
+    finally { setChallengeResponding(false) }
+  }
   const [selectedPerformance, setSelectedPerformance] = useState(null)
-  const [friendQuery, setFriendQuery] = useState('')
-  const [friendResults, setFriendResults] = useState([])
-  const [friendMessage, setFriendMessage] = useState('')
+  const [communitySearchOpen, setCommunitySearchOpen] = useState(false)
   const [friendRequests, setFriendRequests] = useState([])
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [friends, setFriends] = useState([])
@@ -79,9 +97,27 @@ export default function StudioApp({ user, onLogout, onUserUpdated }) {
   const [profileForm, setProfileForm] = useState({ displayName: '', email: '', currentPassword: '', newPassword: '' })
   const [profileMessage, setProfileMessage] = useState('')
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const menuButtonRef = useRef(null)
+  const mainRef = useRef(null)
+  useEffect(() => { mainRef.current?.scrollTo(0, 0) }, [activeView, activeSessionId, ready, selectedPerformance?.id])
+  useEffect(() => {
+    if (!mobileSidebarOpen) return
+    const sidebar = document.getElementById('studio-navigation')
+    const focusables = () => [...sidebar.querySelectorAll('button:not([disabled]),input:not([disabled]),a[href]')].filter((element) => element.getClientRects().length)
+    focusables()[0]?.focus()
+    const keydown = (event) => {
+      if (event.key === 'Escape') { setMobileSidebarOpen(false); return }
+      if (event.key !== 'Tab') return
+      const items = [menuButtonRef.current, ...focusables()].filter(Boolean)
+      const index = items.indexOf(document.activeElement)
+      event.preventDefault()
+      items[(index + (event.shiftKey ? -1 : 1) + items.length) % items.length]?.focus()
+    }
+    document.addEventListener('keydown', keydown)
+    return () => { document.removeEventListener('keydown', keydown); menuButtonRef.current?.focus() }
+  }, [mobileSidebarOpen])
   const processSteps = perfectPitchRequested ? [STEPS[0], PERFECT_PITCH_STEP, ...STEPS.slice(1)] : STEPS
 
-  useEffect(() => { localStorage.setItem('backline-theme', theme) }, [theme])
   const loadSessions = useCallback(async () => {
     try {
       const response = await fetch('/api/sessions')
@@ -103,7 +139,7 @@ export default function StudioApp({ user, onLogout, onUserUpdated }) {
     const response = await fetch(`/api/users/${encodeURIComponent(username)}`)
     const data = await response.json()
     if (!response.ok) return setError(data.error)
-    setProfileData(data.profile); setProfileEditing(false); setProfileMessage(''); setActiveView('profile')
+    setMobileSidebarOpen(false); setProfileData(data.profile); setProfileEditing(false); setProfileMessage(''); setActiveView('profile')
     setProfileForm({ displayName: data.profile.displayName, email: data.profile.isSelf ? user.email : '', currentPassword: '', newPassword: '' })
   }, [user.email])
   const setStep = (key, status) => setStepStatus((current) => ({ ...current, [key]: status }))
@@ -247,16 +283,6 @@ export default function StudioApp({ user, onLogout, onUserUpdated }) {
     setSessions((current) => current.map((item) => item.id === session.id ? session : item))
   }
   const performanceEntries = sessions.flatMap((session) => (session.performances || []).map((performance) => ({ session, performance })))
-  const searchFriends = async (event) => {
-    event.preventDefault(); setFriendMessage('')
-    if (friendQuery.trim().length < 2) return setFriendMessage('Saisissez au moins 2 caractères.')
-    const response = await fetch(`/api/friends/search?q=${encodeURIComponent(friendQuery)}`)
-    const data = await response.json(); setFriendResults(data.users || [])
-  }
-  const sendFriendRequest = async (username) => {
-    const response = await fetch('/api/friends/requests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username }) })
-    const data = await response.json(); setFriendMessage(response.ok ? 'Demande envoyée.' : data.error)
-  }
   const respondToFriendRequest = async (id, status) => {
     await fetch(`/api/friends/requests/${id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) })
     loadFriendRequests(); loadFriends()
@@ -266,7 +292,7 @@ export default function StudioApp({ user, onLogout, onUserUpdated }) {
     const response = await fetch('/api/auth/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(profileForm) })
     const data = await response.json()
     if (!response.ok) return setProfileMessage(data.error)
-    onUserUpdated?.(data.user); setProfileData((current) => ({ ...current, displayName: data.user.displayName })); setProfileMessage(data.message || 'Profil mis à jour.')
+    onUserUpdated?.(data.user); setProfileData((current) => ({ ...current, displayName: data.user.displayName })); setProfileForm(current => ({ ...current, currentPassword: '', newPassword: '' })); setProfileMessage(data.message || 'Profil mis à jour.')
   }
 
   const refreshProfile = async () => { if (profileData) await openProfile(profileData.isSelf ? 'me' : profileData.username) }
@@ -275,7 +301,25 @@ export default function StudioApp({ user, onLogout, onUserUpdated }) {
     if (!response.ok) { setProfileMessage((await response.json()).error); return false }
     await refreshProfile(); return true
   }
-  const deleteProfilePost = async (id) => { await fetch(`/api/users/me/posts/${id}`, { method: 'DELETE' }); refreshProfile() }
+  const deleteProfilePost = async (id) => {
+    const response = await fetch(`/api/users/me/posts/${id}`, { method: 'DELETE' })
+    if (!response.ok) throw new Error('Impossible de supprimer la publication.')
+    setProfileData(current => ({ ...current, posts: current.posts.filter(post => post.id !== id) }))
+  }
+  const likeProfilePost = async (id, liked) => {
+    const response = await fetch(`/api/users/posts/${id}/like`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ liked }) })
+    const data = await response.json()
+    if (!response.ok) throw new Error(data.error || 'Impossible de modifier le like.')
+    setProfileData(current => ({ ...current, posts: current.posts.map(post => post.id === id ? data.post : post) }))
+  }
+  const updateAvatar = async file => {
+    const form = new FormData(); form.append('avatar', file)
+    const response = await fetch('/api/users/me/avatar', { method: 'POST', body: form })
+    const data = await response.json()
+    if (!response.ok) throw new Error(data.error || 'Impossible d’enregistrer la photo.')
+    onUserUpdated?.(data.user)
+    setProfileData(current => ({ ...current, avatarUrl: data.avatarUrl }))
+  }
   const changePerformanceShare = async (id, shared) => {
     const response = await fetch(`/api/users/me/performances/${id}/share`, { method: shared ? 'DELETE' : 'POST' })
     if (!response.ok) return setProfileMessage((await response.json()).error)
@@ -283,38 +327,41 @@ export default function StudioApp({ user, onLogout, onUserUpdated }) {
   }
 
   return (
-    <div className="studio-app" data-theme={theme}>
-      <button className="mobile-sidebar-trigger" onClick={() => setMobileSidebarOpen((open) => !open)} aria-label={mobileSidebarOpen ? 'Fermer le menu' : 'Ouvrir le menu'} aria-expanded={mobileSidebarOpen}><Icon name={mobileSidebarOpen ? 'close' : 'menu'} size={21} /></button>
+    <div className="studio-app" data-theme={theme} data-view={activeView}>
+      <SoftAurora theme={theme} intensity={activeView === 'lyrics-studio' ? 'still' : ready || activeView === 'performance' || activeView === 'challenges' ? 'quiet' : 'ambient'} />
+      {communitySearchOpen && <AppleSpotlight friends={friends} onProfile={openProfile} handleClose={() => setCommunitySearchOpen(false)} />}
+      <button ref={menuButtonRef} className="mobile-sidebar-trigger" aria-controls="studio-navigation" onClick={() => setMobileSidebarOpen((open) => !open)} aria-label={mobileSidebarOpen ? 'Fermer le menu' : 'Ouvrir le menu'} aria-expanded={mobileSidebarOpen}><Icon name={mobileSidebarOpen ? 'close' : 'menu'} size={21} /></button>
       {mobileSidebarOpen && <button className="mobile-sidebar-backdrop" onClick={() => setMobileSidebarOpen(false)} aria-label="Fermer le menu" />}
       <aside className={`studio-sidebar collapsed ${mobileSidebarOpen ? 'mobile-open' : ''}`} id="studio-navigation">
-        <div className="studio-brand"><span className="brand-mark"><Icon name="logo" /></span><button className="sidebar-theme-toggle" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label={theme === 'dark' ? 'Activer le mode clair' : 'Activer le mode sombre'} title={theme === 'dark' ? 'Mode clair' : 'Mode sombre'}><Icon name={theme === 'dark' ? 'sun' : 'moon'} size={17} /></button></div>
+        <div className="studio-brand"><span className="brand-mark"><Icon name="logo" /></span><span className="brand-name">backline<span>studio</span></span><LandscapeOrbToggle theme={theme} onToggle={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="sidebar-theme-toggle" /></div>
         <nav className="studio-nav" aria-label="Navigation principale">
           <button className={`nav-item ${activeView === 'studio' ? 'active' : ''}`} onClick={() => { startOver(); setMobileSidebarOpen(false) }}><Icon name="logo" />Studio</button>
           <button className={`nav-item ${activeView === 'library' ? 'active' : ''}`} onClick={() => { setActiveView('library'); setMobileSidebarOpen(false) }}><Icon name="library" />Mes morceaux</button>
           <button className={`nav-item ${activeView === 'performances' || activeView === 'performance' ? 'active' : ''}`} onClick={() => { setActiveView('performances'); setMobileSidebarOpen(false) }}><Icon name="history" />Mes performances</button>
           <button className={`nav-item ${activeView === 'friends' ? 'active' : ''}`} onClick={() => { setActiveView('friends'); setMobileSidebarOpen(false) }}><Icon name="library" />Mes amis</button>
+          <button className={`nav-item ${activeView === 'challenges' ? 'active' : ''}`} onClick={() => openChallenge(null)}><Swords size={20} />Mes défis</button>
+          <button className="nav-item community-search-trigger" aria-label="Rechercher" title="Rechercher" aria-haspopup="dialog" onClick={() => { setMobileSidebarOpen(false); setNotificationsOpen(false); setCommunitySearchOpen(true) }}><Search size={20} />Rechercher</button>
         </nav>
-        <section className="friends-sidebar"><p className="section-kicker">Communauté</p><form onSubmit={searchFriends} className="friend-search"><input value={friendQuery} onChange={(event) => setFriendQuery(event.target.value)} placeholder="Rechercher un pseudo" aria-label="Rechercher un ami" /><button>⌕</button></form>{friendResults.length > 0 && <div className="friend-results">{friendResults.map((friend) => <div key={friend.id}><button className="friend-profile-link" onClick={() => openProfile(friend.username)}>@{friend.username}</button><button onClick={() => sendFriendRequest(friend.username)}>Ajouter</button></div>)}</div>}{friendMessage && <p className="friend-message">{friendMessage}</p>}</section>
         <div className="sidebar-bottom">
-          <div className="profile-actions"><button className="user-chip" onClick={() => openProfile('me')}><span className="user-avatar">{user?.displayName?.charAt(0).toUpperCase() || 'U'}</span><div className="user-details"><b>{user?.displayName || 'Votre studio'}</b><small>@{user?.username || user?.email}</small></div><span className="profile-arrow" aria-hidden="true">›</span></button><div className="notification-wrap"><button className={`notification-button ${notificationsOpen ? 'open' : ''}`} onClick={() => setNotificationsOpen(!notificationsOpen)} aria-label="Demandes d'amis" aria-expanded={notificationsOpen}><Icon name="bell" size={18} />{friendRequests.length > 0 && <i>{friendRequests.length}</i>}</button>{notificationsOpen && <div className="notifications-popover"><div className="notifications-heading"><b>Demandes d'amis</b><button onClick={() => setNotificationsOpen(false)} aria-label="Fermer les notifications">×</button></div>{friendRequests.length ? friendRequests.map((request) => <div className="notification-request" key={request.id}><span>@{request.sender?.username || request.sender?.displayName || 'Utilisateur'}</span><div><button onClick={() => respondToFriendRequest(request.id, 'accepted')}>Accepter</button><button onClick={() => respondToFriendRequest(request.id, 'declined')}>Refuser</button></div></div>) : <small>Aucune nouvelle demande.</small>}</div>}</div></div>
+          <div className="profile-actions"><button className="user-chip" aria-label="Mon profil" onClick={() => openProfile('me')}><UserAvatar user={user} className="user-avatar" /><div className="user-details"><b>{user?.displayName || 'Votre studio'}</b><small>@{user?.username || user?.email}</small></div><span className="profile-arrow" aria-hidden="true">›</span></button><div className="notification-wrap"><button className={`notification-button ${notificationsOpen ? 'open' : ''}`} onClick={() => setNotificationsOpen(!notificationsOpen)} aria-label="Demandes d'amis" aria-expanded={notificationsOpen}><Icon name="bell" size={18} />{friendRequests.length + challengeInvites.length > 0 && <i>{friendRequests.length + challengeInvites.length}</i>}</button>{notificationsOpen && <div className="notifications-popover"><div className="notifications-heading"><b>Notifications</b><button onClick={() => setNotificationsOpen(false)} aria-label="Fermer les notifications">×</button></div>{challengeNoticeError && <p role="alert">{challengeNoticeError}</p>}{challengeInvites.map(item => <div className="notification-request" key={item.id}><span>{item.challenger.displayName} vous défie sur {item.track.title} — {item.track.artist}</span><div><button disabled={challengeResponding} onClick={() => respondToChallenge(item.id, 'accept')}>Accepter</button><button disabled={challengeResponding} onClick={() => respondToChallenge(item.id, 'decline')}>Refuser</button><button onClick={() => openChallenge({ id: item.id })}>Voir</button></div></div>)}{friendRequests.length ? friendRequests.map((request) => <div className="notification-request" key={request.id}><span>@{request.sender?.username || request.sender?.displayName || 'Utilisateur'}</span><div><button onClick={() => respondToFriendRequest(request.id, 'accepted')}>Accepter</button><button onClick={() => respondToFriendRequest(request.id, 'declined')}>Refuser</button></div></div>) : !challengeInvites.length && <small>Aucune nouvelle demande.</small>}</div>}</div></div>
         </div>
       </aside>
 
-      <main className="studio-main">
-        {activeView === 'profile' && profileData ? <ProfilePage profile={profileData} editing={profileEditing} setEditing={setProfileEditing} profileForm={profileForm} setProfileForm={setProfileForm} profileMessage={profileMessage} onUpdateProfile={updateProfile} onCreatePost={createProfilePost} onDeletePost={deleteProfilePost} onLogout={onLogout} /> : <>
+      <main ref={mainRef} className="studio-main">
+        {activeView === 'challenges' ? <ChallengesPage user={user} feed={challengeFeed} sessions={sessions} selection={challengeSelection} setSelection={setChallengeSelection} onImport={startOver} /> : activeView === 'profile' && profileData ? <ProfilePage profile={profileData} editing={profileEditing} setEditing={setProfileEditing} profileForm={profileForm} setProfileForm={setProfileForm} profileMessage={profileMessage} onUpdateProfile={updateProfile} onCreatePost={createProfilePost} onDeletePost={deleteProfilePost} onLikePost={likeProfilePost} onAvatar={updateAvatar} onLogout={onLogout} /> : <>
 
-        {activeView === 'lyrics-studio' && activeSessionId ? <LyricsStudio sessionId={activeSessionId} onBack={() => setActiveView('studio')} onSaved={applyEditedLyrics} /> : activeView === 'performance' && selectedPerformance ? <div className="studio-player"><PerformancePlayer trackInfo={trackInfo} stems={stems} lyricsLines={lyricsLines} performance={selectedPerformance} /></div> : activeView === 'profile' && profileData ? <section className="profile-page"><header className="profile-page-hero"><div className="profile-page-avatar">{profileData.displayName?.charAt(0).toUpperCase()}</div><h2>{profileData.displayName}</h2><p>@{profileData.username || 'utilisateur'}</p>{profileData.isSelf && <button className="profile-edit-button" onClick={() => setProfileEditing(!profileEditing)}>{profileEditing ? 'Voir mon profil' : 'Modifier le profil'}</button>}</header>{profileEditing && profileData.isSelf ? <form className="profile-page-form" onSubmit={updateProfile}><label>Nom affiché<input value={profileForm.displayName} onChange={(event) => setProfileForm({ ...profileForm, displayName: event.target.value })} required /></label><label>Adresse e-mail<input type="email" value={profileForm.email} onChange={(event) => setProfileForm({ ...profileForm, email: event.target.value })} required /></label><label>Mot de passe actuel<input type="password" value={profileForm.currentPassword} onChange={(event) => setProfileForm({ ...profileForm, currentPassword: event.target.value })} /></label><label>Nouveau mot de passe<input type="password" value={profileForm.newPassword} onChange={(event) => setProfileForm({ ...profileForm, newPassword: event.target.value })} minLength="10" /></label>{profileMessage && <p>{profileMessage}</p>}<button className="new-track">Enregistrer</button></form> : <div className="profile-page-columns"><section><p className="section-kicker">Performances partagées</p><div className="profile-page-empty">Aucune performance partagée pour le moment.</div></section><section><p className="section-kicker">Posts</p><div className="profile-page-empty">Les publications de {profileData.displayName} apparaîtront ici.</div><div className="profile-page-empty muted">La communauté Backline arrive bientôt.</div></section></div>}</section> : activeView === 'friends' ? <section className="library-page"><div className="library-page-heading"><div><p className="section-kicker">Votre communauté</p><h2>Mes amis</h2><p>Retrouvez les personnes avec qui vous partagez Backline.</p></div></div>{friends.length ? <div className="friends-grid">{friends.map((friend) => <button className="friend-card" onClick={() => openProfile(friend.username)} key={friend.id}><span>{friend.displayName?.charAt(0).toUpperCase()}</span><b>{friend.displayName}</b><small>@{friend.username || 'utilisateur'}</small></button>)}</div> : <div className="library-empty"><span className="session-art"><Icon name="library" size={20} /></span><h2>Pas encore d'amis.</h2><p>Utilisez la recherche dans la barre latérale pour envoyer une demande.</p></div>}</section> : activeView === 'performances' ? <section className="library-page performances-page">
+        {activeView === 'lyrics-studio' && activeSessionId ? <LyricsStudio sessionId={activeSessionId} onBack={() => setActiveView('studio')} onSaved={applyEditedLyrics} /> : activeView === 'performance' && selectedPerformance ? <div className="studio-player"><PerformancePlayer trackInfo={trackInfo} stems={stems} lyricsLines={lyricsLines} performance={selectedPerformance} /></div> : activeView === 'profile' && profileData ? <section className="profile-page"><header className="profile-page-hero"><div className="profile-page-avatar">{profileData.displayName?.charAt(0).toUpperCase()}</div><h2>{profileData.displayName}</h2><p>@{profileData.username || 'utilisateur'}</p>{profileData.isSelf && <button className="profile-edit-button" onClick={() => setProfileEditing(!profileEditing)}>{profileEditing ? 'Voir mon profil' : 'Modifier le profil'}</button>}</header>{profileEditing && profileData.isSelf ? <form className="profile-page-form" onSubmit={updateProfile}><label>Nom affiché<input value={profileForm.displayName} onChange={(event) => setProfileForm({ ...profileForm, displayName: event.target.value })} required /></label><label>Adresse e-mail<input type="email" value={profileForm.email} onChange={(event) => setProfileForm({ ...profileForm, email: event.target.value })} required /></label><label>Mot de passe actuel<input type="password" value={profileForm.currentPassword} onChange={(event) => setProfileForm({ ...profileForm, currentPassword: event.target.value })} /></label><label>Nouveau mot de passe<input type="password" value={profileForm.newPassword} onChange={(event) => setProfileForm({ ...profileForm, newPassword: event.target.value })} minLength="10" /></label>{profileMessage && <p>{profileMessage}</p>}<button className="new-track">Enregistrer</button></form> : <div className="profile-page-columns"><section><p className="section-kicker">Performances partagées</p><div className="profile-page-empty">Aucune performance partagée pour le moment.</div></section><section><p className="section-kicker">Posts</p><div className="profile-page-empty">Les publications de {profileData.displayName} apparaîtront ici.</div><div className="profile-page-empty muted">La communauté Backline arrive bientôt.</div></section></div>}</section> : activeView === 'friends' ? <section className="library-page"><div className="library-page-heading"><div><p className="section-kicker">Votre communauté</p><h2>Mes amis</h2><p>Retrouvez les personnes avec qui vous partagez Backline.</p></div></div>{friends.length ? <div className="friends-grid">{friends.map((friend) => <article className="friend-card" key={friend.id}><UserAvatar user={friend} /><b>{friend.displayName}</b><small>@{friend.username || 'utilisateur'}</small><button onClick={() => openProfile(friend.username)}>Profil</button><button onClick={() => openChallenge({ opponentId: friend.id, name: friend.displayName })}><Swords size={16} />Défier</button></article>)}</div> : <div className="library-empty"><span className="session-art"><Icon name="library" size={20} /></span><h2>Pas encore d'amis.</h2><p>Utilisez la recherche dans la barre latérale pour envoyer une demande.</p></div>}</section> : activeView === 'performances' ? <section className="library-page performances-page">
           <div className="library-page-heading"><div><p className="section-kicker">Vos enregistrements</p><h2>Réécoutez vos prises.</h2><p>Chaque performance est jouée avec l'instrumentale, sans la voix originale.</p></div></div>
-          {performanceEntries.length ? <div className="performance-library-list">{performanceEntries.slice().reverse().map(({ session, performance }, index) => <button className="performance-library-card" key={performance.id} onClick={() => openPerformance(session, performance)}><span className="performance-cover">{session.coverUrl ? <img src={session.coverUrl} alt="" /> : <Icon name="history" size={25} />}</span><span><b>{session.title}</b><small>{session.artist || 'Artiste inconnu'}</small><em>Performance {performanceEntries.length - index} · {new Date(performance.createdAt).toLocaleDateString('fr-FR')}</em></span><i>▶</i></button>)}</div> : <div className="library-empty"><span className="session-art"><Icon name="history" size={20} /></span><h2>Aucune performance.</h2><p>Armez l'enregistrement avant de lancer un morceau.</p><button className="new-track" onClick={startOver}><Icon name="plus" size={17} />Créer une session</button></div>}
+          {performanceEntries.length ? <div className="folder-grid">{performanceEntries.slice().reverse().map(({ session, performance }) => <FolderTabCard key={performance.id} session={session} performance={performance} onOpen={() => openPerformance(session, performance)} />)}</div> : <div className="library-empty"><span className="session-art"><Icon name="history" size={20} /></span><h2>Aucune performance.</h2><p>Armez l'enregistrement avant de lancer un morceau.</p><button className="new-track" onClick={startOver}><Icon name="plus" size={17} />Créer une session</button></div>}
           {performanceEntries.length > 0 && <section className="performance-sharing"><p className="section-kicker">Partage sur mon profil</p><p>Choisissez les prises que vos amis pourront écouter depuis votre profil.</p><div>{performanceEntries.map(({ session, performance }) => <article key={`share-${performance.id}`}><span>{session.title} — {session.artist || 'Artiste inconnu'}</span><button onClick={() => changePerformanceShare(performance.id, Boolean(performance.sharedAt))}>{performance.sharedAt ? 'Retirer du profil' : 'Partager sur mon profil'}</button></article>)}</div></section>}
         </section> : activeView === 'library' ? <section className="library-page">
           <div className="library-page-heading"><div><p className="section-kicker">Votre collection</p><h2>Choisissez une session.</h2><p>Retrouvez vos morceaux prêts à chanter et à mixer.</p></div>{sessions.length > 0 && <button className="clear-library" onClick={clearLibrary}>Nettoyer mes morceaux</button>}</div>
-          {sessions.length ? <div className="library-grid">{sessions.map((session) => <button key={session.id} className="library-card" onClick={() => openSession(session.id)}><span className="library-card-cover"><Icon name="library" size={28} />{session.coverUrl && <img src={session.coverUrl} alt="" />}</span><span className="library-card-info"><b>{session.title}</b><small>{session.artist || 'Artiste inconnu'}</small><em>Ouvrir la session <span>→</span></em></span></button>)}</div> : <div className="library-empty"><span className="session-art"><Icon name="library" size={20} /></span><h2>Votre bibliothèque est vide.</h2><p>Importez un morceau pour créer votre première session karaoke.</p><button className="new-track" onClick={startOver}><Icon name="plus" size={17} />Importer un morceau</button></div>}
-        </section> : ready ? <div className="studio-player"><Player trackInfo={trackInfo} stems={stems} lyricsLines={lyricsLines} lyricsSource={lyricsSource} sessionId={activeSessionId} perfectPitch={sessions.find((session) => session.id === activeSessionId)?.perfectPitch} onPerformanceSaved={savePerformanceToLibrary} onListenToPerformance={listenToSavedPerformance} onEditLyrics={() => setActiveView('lyrics-studio')} /></div> : (
+          {sessions.length ? <div className="folder-grid">{sessions.map((session) => <FolderTabCard key={session.id} session={session} onOpen={() => openSession(session.id)} />)}</div> : <div className="library-empty"><span className="session-art"><Icon name="library" size={20} /></span><h2>Votre bibliothèque est vide.</h2><p>Importez un morceau pour créer votre première session karaoke.</p><button className="new-track" onClick={startOver}><Icon name="plus" size={17} />Importer un morceau</button></div>}
+        </section> : ready ? <div className="studio-player"><Player key={activeSessionId} trackInfo={trackInfo} stems={stems} lyricsLines={lyricsLines} lyricsSource={lyricsSource} sessionId={activeSessionId} perfectPitch={sessions.find((session) => session.id === activeSessionId)?.perfectPitch} onPerformanceSaved={savePerformanceToLibrary} onListenToPerformance={listenToSavedPerformance} onEditLyrics={() => setActiveView('lyrics-studio')} /></div> : (
           <div className="studio-content">
-            <section className="upload-panel"><div className="panel-heading"><div><p className="section-kicker">01 · Créer une session</p><h2>Ta musique.<br />Ta voix. Ta scène.</h2><p>Importe un morceau : Backline prépare les stems, les paroles et ta session karaoke.</p></div><span className="format-pill">MP3 · 20 Mo max</span></div><div className="singing-mode-picker" role="radiogroup" aria-label="Mode de chant"><button type="button" role="radio" aria-checked={!perfectPitchRequested} className={!perfectPitchRequested ? 'selected' : ''} onClick={() => setPerfectPitchRequested(false)}><span>01</span><b>Karaoké classique</b><small>Les paroles au centre de la scène.</small></button><button type="button" role="radio" aria-checked={perfectPitchRequested} className={perfectPitchRequested ? 'selected' : ''} onClick={() => setPerfectPitchRequested(true)}><span>02</span><b>Perfect Pitch</b><small>Analyse ta justesse en direct.</small></button></div><Uploader onFileSelected={runPipeline} /></section>
+            <section className="upload-panel"><div className="panel-heading"><div><h2>Ta musique.<br />Ta voix.<br /><span>Ta scène.</span></h2><p>Importe un morceau : Backline prépare les stems, les paroles et ta session karaoke.</p></div><span className="format-pill">MP3 · 20 Mo max</span></div><div className="singing-mode-picker" role="radiogroup" aria-label="Mode de chant"><button type="button" role="radio" aria-checked={!perfectPitchRequested} className={!perfectPitchRequested ? 'selected' : ''} onClick={() => setPerfectPitchRequested(false)}><span>01</span><b>Karaoké classique</b><small>Les paroles au centre de la scène.</small></button><button type="button" role="radio" aria-checked={perfectPitchRequested} className={perfectPitchRequested ? 'selected' : ''} onClick={() => setPerfectPitchRequested(true)}><span>02</span><b>Perfect Pitch</b><small>Analyse ta justesse en direct.</small></button></div><Uploader onFileSelected={runPipeline} /></section>
             <aside className={`process-panel ${perfectPitchRequested ? 'perfect-pitch-process' : ''}`}><p className="section-kicker">{perfectPitchRequested ? 'Mode Perfect Pitch' : 'Traitement IA'}</p><h2>{perfectPitchRequested ? 'Votre performance commence ici.' : 'Votre session'}</h2><p className="process-intro">{perfectPitchRequested ? 'Après la séparation, Backline relève les notes de référence du morceau. Elles seront superposées à votre voix en direct pour suivre votre justesse.' : 'Chaque piste est préparée pour vous laisser chanter, mixer et suivre les paroles.'}</p>
-              <div className="process-list">{processSteps.map((step, index) => <div className={`process-step ${stepStatus[step.key] || ''}`} key={step.key}><span className="step-number">{stepStatus[step.key] === 'done' ? '✓' : String(index + 1).padStart(2, '0')}</span><div><b>{step.label}</b><small>{stepStatus[step.key] === 'active' ? 'En cours…' : stepStatus[step.key] === 'done' ? 'Terminé' : stepStatus[step.key] === 'unavailable' ? 'Analyse indisponible — karaoké classique' : step.detail}</small></div>{stepStatus[step.key] === 'active' && <span className="spinner" />}</div>)}</div>
+              <div className="process-list" role="status" aria-live="polite">{processSteps.map((step, index) => <div className={`process-step ${stepStatus[step.key] || ''}`} key={step.key}><span className="step-number">{stepStatus[step.key] === 'done' ? '✓' : String(index + 1).padStart(2, '0')}</span><div><b>{step.label}</b><small>{stepStatus[step.key] === 'active' ? 'En cours…' : stepStatus[step.key] === 'done' ? 'Terminé' : stepStatus[step.key] === 'unavailable' ? 'Analyse indisponible — karaoké classique' : step.detail}</small></div>{stepStatus[step.key] === 'active' && <span className="spinner" />}</div>)}</div>
               <div className="privacy-note">Vos fichiers sont traités uniquement pour créer votre session.</div>
             </aside>
             {error && <div className="studio-error">{error}</div>}

@@ -49,9 +49,13 @@ export default function VolumeKnob({ label, value, onChange, variant = 'instru' 
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
         onKeyDown={(e) => {
-          if (e.key === 'ArrowUp') onChange(Math.min(1, value + 0.05))
-          if (e.key === 'ArrowDown') onChange(Math.max(0, value - 0.05))
+          if (['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft', 'Home', 'End'].includes(e.key)) e.preventDefault()
+          if (e.key === 'ArrowUp' || e.key === 'ArrowRight') onChange(Math.min(1, value + 0.05))
+          if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') onChange(Math.max(0, value - 0.05))
+          if (e.key === 'Home') onChange(0)
+          if (e.key === 'End') onChange(1)
         }}
       >
         <div className="indicator" style={{ transform: `translateX(-50%) rotate(${angle}deg)` }} />

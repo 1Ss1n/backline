@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { frequencyToMidi } from '../utils/pitchMath.js'
+import { localMicrophoneStream } from '../utils/microphoneSource.js'
 
 const MIN_RMS = 0.012
 const MIN_FREQUENCY = 80
@@ -18,19 +19,70 @@ function yin(buffer, sampleRate) {
   return { frequency: sampleRate / refinedTau, rms, confidence: 1 - current }
 }
 
-export function useMicrophonePitch(onPitch) {
-  const [status, setStatus] = useState('inactive'); const contextRef = useRef(null); const streamRef = useRef(null); const frameRef = useRef(null); const lastUiRef = useRef(0); const pitchesRef = useRef([]); const callbackRef = useRef(onPitch)
+export function useMicrophonePitch(onPitch, { source = 'local', stream: remoteStream = null, available = false } = {}) {
+  const [status, setStatus] = useState('inactive')
+  const contextRef = useRef(null), streamRef = useRef(null), frameRef = useRef(null)
+  const nodeRef = useRef(null), ownsStream = useRef(false), generation = useRef(0)
+  const pitchesRef = useRef([]), callbackRef = useRef(onPitch)
   useEffect(() => { callbackRef.current = onPitch }, [onPitch])
-  const stop = useCallback(() => { cancelAnimationFrame(frameRef.current); streamRef.current?.getTracks().forEach((track) => track.stop()); contextRef.current?.close(); streamRef.current = null; contextRef.current = null; setStatus('inactive') }, [])
-  const start = useCallback(async () => {
-    if (!navigator.mediaDevices?.getUserMedia) return setStatus('unavailable')
-    try {
-      setStatus('requesting'); const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } })
-      const Context = window.AudioContext || window.webkitAudioContext; const context = new Context(); await context.resume(); const analyser = context.createAnalyser(); analyser.fftSize = 2048; analyser.smoothingTimeConstant = 0; context.createMediaStreamSource(stream).connect(analyser)
-      const buffer = new Float32Array(analyser.fftSize); streamRef.current = stream; contextRef.current = context; setStatus('active')
-      const tick = (now) => { analyser.getFloatTimeDomainData(buffer); const raw = yin(buffer, context.sampleRate); const rawMidi = raw.frequency ? frequencyToMidi(raw.frequency) : null; if (rawMidi != null) pitchesRef.current = [...pitchesRef.current.slice(-4), rawMidi]; const sorted = [...pitchesRef.current].sort((a, b) => a - b); const smoothedMidi = sorted.length ? sorted[Math.floor(sorted.length / 2)] : null; if (now - lastUiRef.current > 65) { callbackRef.current?.({ ...raw, rawMidi, smoothedMidi }); lastUiRef.current = now } frameRef.current = requestAnimationFrame(tick) }
-      frameRef.current = requestAnimationFrame(tick)
-    } catch (error) { setStatus(error.name === 'NotAllowedError' ? 'denied' : 'unavailable') }
+  const stop = useCallback(() => {
+    generation.current++
+    cancelAnimationFrame(frameRef.current)
+    nodeRef.current?.disconnect(); nodeRef.current = null
+    if (ownsStream.current) streamRef.current?.getTracks().forEach(track => track.stop())
+    streamRef.current = null; ownsStream.current = false
+    contextRef.current?.close().catch(() => {}); contextRef.current = null
+    pitchesRef.current = []; setStatus('inactive')
   }, [])
-  useEffect(() => stop, [stop]); return { status, start, stop }
+  const prepare = useCallback(async () => {
+    const Context = window.AudioContext || window.webkitAudioContext
+    if (!Context) throw new Error('Web Audio indisponible')
+    if (!contextRef.current || contextRef.current.state === 'closed') contextRef.current = new Context({ latencyHint: 'interactive' })
+    await contextRef.current.resume()
+    return contextRef.current
+  }, [])
+  const start = useCallback(async () => {
+    const id = ++generation.current
+    let stream, context
+    try {
+      setStatus('requesting')
+      context = await prepare()
+      stream = source === 'phone' ? remoteStream : await localMicrophoneStream()
+      if (!stream?.getAudioTracks().some(track => track.readyState === 'live')) throw new Error('No microphone')
+      if (generation.current !== id) { if (source === 'local') stream.getTracks().forEach(track => track.stop()); return }
+      cancelAnimationFrame(frameRef.current); nodeRef.current?.disconnect()
+      if (ownsStream.current) streamRef.current?.getTracks().forEach(track => track.stop())
+      const analyser = context.createAnalyser(); analyser.fftSize = 2048; analyser.smoothingTimeConstant = 0
+      nodeRef.current = context.createMediaStreamSource(stream); nodeRef.current.connect(analyser)
+      // Deliberately NOT connected to context.destination: no microphone monitoring.
+      streamRef.current = stream; ownsStream.current = source === 'local'; pitchesRef.current = []
+      const buffer = new Float32Array(analyser.fftSize)
+      let lastUi = 0
+      setStatus('active')
+      const tick = now => {
+        if (generation.current !== id) return
+        if (!stream.getAudioTracks().some(track => track.readyState === 'live' && !track.muted && track.enabled)) { setStatus('unavailable'); frameRef.current = requestAnimationFrame(tick); return }
+        setStatus('active')
+        analyser.getFloatTimeDomainData(buffer)
+        const raw = yin(buffer, context.sampleRate)
+        const rawMidi = raw.frequency ? frequencyToMidi(raw.frequency) : null
+        if (rawMidi != null) pitchesRef.current = [...pitchesRef.current.slice(-4), rawMidi]
+        const sorted = [...pitchesRef.current].sort((a, b) => a - b)
+        const smoothedMidi = sorted.length ? sorted[Math.floor(sorted.length / 2)] : null
+        if (now - lastUi > 65) { callbackRef.current?.({ ...raw, rawMidi, smoothedMidi }); lastUi = now }
+        frameRef.current = requestAnimationFrame(tick)
+      }
+      frameRef.current = requestAnimationFrame(tick)
+    } catch (error) {
+      if (source === 'local') stream?.getTracks().forEach(track => track.stop())
+      if (generation.current === id) { stop(); setStatus(error.name === 'NotAllowedError' ? 'denied' : 'unavailable') }
+    }
+  }, [source, remoteStream, prepare, stop])
+  useEffect(() => {
+    if (source !== 'phone') return undefined
+    if (available && remoteStream) start()
+    else stop()
+  }, [source, available, remoteStream, start, stop])
+  useEffect(() => stop, [stop])
+  return { status, start, stop, prepare }
 }

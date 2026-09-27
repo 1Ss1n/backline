@@ -127,5 +127,5 @@ export function deleteSession(token) {
 
 export function publicUser(user) {
   if (!user) return null
-  return { id: user.id, username: user.username || null, email: user.email, displayName: user.displayName, verified: user.verified, isAdmin: Boolean(user.isAdmin), createdAt: user.createdAt }
+  return { id: user.id, username: user.username || null, email: user.email, displayName: user.displayName, avatarUrl: user.avatarUrl || null, verified: user.verified, isAdmin: Boolean(user.isAdmin), createdAt: user.createdAt }
 }

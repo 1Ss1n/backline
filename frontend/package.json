@@ -7,17 +7,22 @@
     "dev": "vite",
     "tunnel": "node scripts/startTunnel.mjs",
     "build": "vite build",
-    "test": "node --test src/utils/pitchMath.test.js src/utils/perfectPitchScoring.test.js src/utils/lyricsEditor.test.js",
+    "test": "node --test src/utils/pitchMath.test.js src/utils/perfectPitchScoring.test.js src/utils/lyricsEditor.test.js src/utils/lyricPresentation.test.js src/utils/pitchViewport.test.js src/utils/microphoneSource.test.js",
+    "test:phone": "playwright test --config playwright.phone.config.js",
+    "test:challenges": "playwright test --config playwright.challenge.config.js",
+    "test:ui": "playwright test",
     "preview": "vite preview"
   },
   "dependencies": {
     "clsx": "^2.1.1",
     "lucide-react": "^1.45.0",
+    "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@vitejs/plugin-react": "^4.3.1",
     "vite": "^8.2.2"
   }

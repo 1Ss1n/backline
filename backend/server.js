@@ -18,8 +18,14 @@ import transcribeRouter from './routes/transcribe.js'
 import separationLabRouter from './routes/separationLab.js'
 import lyricsEditorRouter from './routes/lyricsEditor.js'
 import { findSessionByAssetUrl } from './services/sessionStore.js'
-import { backfillUsernames, ensureAdmin } from './services/authStore.js'
+import { backfillUsernames, ensureAdmin, getSessionUser } from './services/authStore.js'
+import { phoneMicConfig } from './services/phoneMicConfig.js'
+import { createPhoneMicServer } from './services/phoneMicServer.js'
 import { areFriends } from './services/friendStore.js'
+import { ChallengeStore } from './services/challengeStore.js'
+import { createChallengeServer } from './routes/challenges.js'
+import { getSession } from './services/sessionStore.js'
+import { findUserById } from './services/authStore.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const PORT = process.env.PORT || 4000
@@ -28,6 +34,17 @@ const app = express()
 app.use(helmet({ crossOriginResourcePolicy: false }))
 app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173', credentials: true }))
 app.use(express.json({ limit: '1mb' }))
+const phoneMic = createPhoneMicServer({ config: phoneMicConfig(), getSessionUser })
+app.use('/api/phone-mic', phoneMic.router)
+const challengeRtcConfig = phoneMicConfig()
+// The social API also works on the normal frontend when Phone Micro uses a tunnel.
+challengeRtcConfig.origins.add(new URL(process.env.FRONTEND_URL || 'http://localhost:5173').origin)
+const challenges = createChallengeServer({ config: challengeRtcConfig, getSessionUser, store: new ChallengeStore({
+  directory: path.join(__dirname, 'storage', 'challenges'), stemsDirectory: path.join(__dirname, 'storage', 'stems'),
+  getSession, getUser: findUserById, areFriends,
+  expiryMs: Math.max(1, Number(process.env.CHALLENGE_EXPIRY_DAYS) || 7) * 86400000,
+}) })
+app.use('/api/challenges', requireUser, challenges.router)
 app.use('/api/auth', authRouter)
 // Experimental and intentionally isolated from the main karaoke pipeline.
 app.use('/api/pitch-test', pitchTestRouter)
@@ -67,6 +84,8 @@ app.get('/api/health', (_req, res) => res.json({ ok: true }))
 await ensureAdmin({ username: process.env.ADMIN_USERNAME || 'admin', password: process.env.ADMIN_PASSWORD || '07052003' })
 backfillUsernames()
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Backend karaoké lancé sur http://localhost:${PORT}`)
 })
+phoneMic.attach(server)
+challenges.attach(server)

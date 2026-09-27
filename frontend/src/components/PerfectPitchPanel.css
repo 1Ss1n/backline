@@ -1,0 +1,57 @@
+/* Adaptive pitch display; scoped so the scoring/test tools are unchanged. */
+.studio-player .pitch-panel-adaptive {
+  --pitch-live: #8bdfdc;
+  gap:16px;
+  border-color:color-mix(in srgb,var(--accent-secondary) 25%,var(--line));
+}
+.studio-app[data-theme='light'] .pitch-panel-adaptive { --pitch-live:#14736f; }
+.pitch-panel-adaptive .perfect-pitch-heading p { display:flex; align-items:center; gap:6px; color:var(--accent-secondary); font:10px var(--font-mono); letter-spacing:.1em; }
+.studio-player .pitch-panel-adaptive .perfect-pitch-heading h3 { margin-top:7px; font-size:23px; letter-spacing:-.6px; }
+.pitch-panel-adaptive .perfect-pitch-grade { flex-shrink:0; font-size:9px; letter-spacing:.04em; padding:7px 9px; }
+.pitch-panel-adaptive .perfect-pitch-grade.waiting { color:var(--muted); background:var(--surface-soft); border:1px solid var(--line); }
+.studio-player .pitch-panel-adaptive .perfect-pitch-score { gap:12px; background:transparent; }
+.pitch-panel-adaptive .perfect-pitch-score>div { padding:10px 13px; gap:5px; border-radius:12px; background:var(--surface-soft); }
+.pitch-panel-adaptive .perfect-pitch-score b { font-size:23px; font-weight:500; letter-spacing:-1px; font-variant-numeric:tabular-nums; }
+.pitch-panel-adaptive .perfect-pitch-score>div:last-child b { color:var(--accent-secondary); }
+.pitch-panel-adaptive .pitch-adaptive-grid { padding:12px; border-radius:15px; background:var(--bg); border-color:var(--line); }
+.pitch-panel-adaptive .pitch-adaptive-grid .pitch-grid-legend { flex-wrap:wrap; justify-content:flex-start; gap:12px; margin:0 0 18px; }
+.pitch-panel-adaptive .pitch-adaptive-grid .pitch-grid-legend span { display:flex; align-items:center; gap:6px; color:var(--text); font-size:10px; font-weight:500; }
+.pitch-panel-adaptive .pitch-adaptive-grid .pitch-grid-legend small { margin-left:auto; color:var(--muted); font-size:9px; }
+.pitch-panel-adaptive .pitch-adaptive-grid .pitch-legend.reference { width:12px; height:5px; border-radius:2px; }
+.pitch-panel-adaptive .pitch-adaptive-grid .pitch-legend.live { width:7px; height:7px; background:var(--pitch-live); box-shadow:none; }
+.pitch-grid-range { position:relative; display:flex; justify-content:space-between; margin-bottom:9px; min-height:13px; font:9px var(--font-mono); color:var(--muted); }
+.pitch-grid-range>span:first-child>span { opacity:.5; }
+.pitch-grid-range>span:last-child { position:absolute; left:50%; transform:translateX(-50%); color:var(--accent-secondary); font-size:8px; }
+.pitch-panel-adaptive .pitch-adaptive-grid .perfect-pitch-roll-zoomed { height:208px; }
+.pitch-panel-adaptive .pitch-adaptive-grid .perfect-pitch-window { border-radius:10px; background-color:var(--surface); }
+.pitch-history-shade { position:absolute; inset:0 50% 0 0; background:color-mix(in srgb,var(--bg) 35%,transparent); pointer-events:none; }
+.pitch-panel-adaptive .pitch-adaptive-grid .perfect-pitch-note { display:flex; align-items:center; justify-content:center; height:var(--pitch-note-height); min-width:0; border-radius:4px; background:color-mix(in srgb,var(--accent) 60%,var(--surface)); box-shadow:none; font-style:normal; }
+.pitch-panel-adaptive .pitch-adaptive-grid .perfect-pitch-note.is-past { opacity:.4; }
+.pitch-panel-adaptive .pitch-adaptive-grid .perfect-pitch-note.is-current { background:var(--accent); box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 16%,transparent),0 0 15px color-mix(in srgb,var(--accent) 20%,transparent); }
+.pitch-panel-adaptive .pitch-adaptive-grid .perfect-pitch-note>span { position:absolute; bottom:calc(100% + 4px); color:var(--muted); font:9px var(--font-mono); white-space:nowrap; }
+.pitch-panel-adaptive .pitch-adaptive-grid .perfect-pitch-note.is-current>span { color:var(--accent-text); }
+.pitch-voice-trail { position:absolute; inset:0; width:100%; height:100%; z-index:2; pointer-events:none; overflow:visible; }
+.pitch-voice-trail polyline { fill:none; stroke:var(--pitch-live); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; opacity:.8; }
+.pitch-panel-adaptive .pitch-adaptive-grid .perfect-pitch-point { width:6px; height:6px; border:1px solid var(--surface); background:var(--pitch-live); box-shadow:none; z-index:3; }
+.pitch-panel-adaptive .pitch-adaptive-grid .perfect-pitch-point.perfect { background:var(--accent); border-color:var(--pitch-live); }
+.pitch-panel-adaptive .pitch-adaptive-grid .perfect-pitch-point.miss { background:var(--danger); }
+.pitch-panel-adaptive .pitch-adaptive-grid .perfect-pitch-now { width:1px; background:var(--accent-secondary); box-shadow:0 0 8px color-mix(in srgb,var(--accent-secondary) 25%,transparent); opacity:.8; }
+.pitch-time-axis { display:flex; justify-content:space-between; padding-top:8px; color:var(--muted); font:9px var(--font-mono); }
+.pitch-target-readout { display:flex; align-items:center; gap:18px; padding:0 2px; }
+.pitch-target-readout>div { min-width:68px; display:grid; gap:3px; }
+.pitch-target-readout>div>span { color:var(--muted); font-size:9px; }
+.pitch-target-readout strong { color:var(--accent-text); font:500 26px var(--font-display); line-height:1.1; }
+.pitch-target-readout p { margin:0; font-size:11px; line-height:1.7; color:var(--text); }
+.pitch-target-readout p>span { color:var(--muted); font-size:10px; }
+.pitch-panel-adaptive .perfect-pitch-footer { padding-top:14px; border-top:1px solid var(--line); }
+.pitch-panel-adaptive .perfect-pitch-footer b { display:flex; align-items:center; gap:6px; font-size:10px; font-weight:500; color:var(--muted); }
+.pitch-panel-adaptive .perfect-pitch-footer b>i { flex:0 0 5px; height:5px; border-radius:50%; background:var(--muted); }
+.pitch-panel-adaptive .perfect-pitch-footer b>i.is-active { background:var(--accent); }
+.pitch-panel-adaptive .perfect-pitch-footer button { border-radius:10px; font-size:10px; gap:6px; }
+@media (max-width:600px) {
+  .studio-player .pitch-panel-adaptive { gap:13px; }
+  .studio-player .pitch-panel-adaptive .perfect-pitch-heading h3 { font-size:21px; }
+  .pitch-panel-adaptive .pitch-adaptive-grid .perfect-pitch-roll-zoomed { height:190px; }
+  .pitch-grid-range { padding-bottom:14px; }
+  .pitch-grid-range>span:last-child { bottom:0; }
+}

@@ -27,6 +27,8 @@ storage/
 
 # Test outputs
 test-output/
+test-results/
+playwright-report/
 python-service/test-output/
 
 # macOS

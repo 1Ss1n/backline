@@ -1,0 +1,33 @@
+.community-spotlight { position:fixed; inset:0; width:min(640px,calc(100vw - 32px)); max-height:calc(100dvh - 48px); padding:0; margin:auto; overflow:auto; border:1px solid var(--line); border-radius:26px; color:var(--text); background:var(--surface); box-shadow:0 28px 100px #00000055; font-family:var(--font-ui); }
+.community-spotlight[open] { animation:spotlight-enter .16s ease-out; }
+.community-spotlight::backdrop { background:#08080e85; backdrop-filter:blur(6px); }
+.spotlight-search { display:flex; align-items:center; gap:14px; padding:20px 22px; color:var(--accent-text); }
+.spotlight-search input { flex:1; min-width:0; width:100%; padding:4px 0; background:transparent; border:0; outline:none; color:var(--text); font:400 21px var(--font-display); }
+.spotlight-search input::placeholder { color:var(--muted); }
+.spotlight-search:focus-within { box-shadow:inset 0 -2px 0 var(--accent-text); }
+.spotlight-close { display:grid; place-items:center; flex:0 0 32px; width:32px; height:32px; border:1px solid var(--line); border-radius:10px; color:var(--muted); background:var(--surface-soft); cursor:pointer; }
+.spotlight-results { min-height:160px; max-height:min(380px,50dvh); overflow-y:auto; border-top:1px solid var(--line); padding:10px; background:var(--surface-soft); }
+.spotlight-results ul { list-style:none; padding:0; margin:0; }
+.spotlight-person { display:flex; align-items:center; gap:12px; padding:10px; border-radius:14px; }
+.spotlight-person:hover,.spotlight-person:focus-within { background:var(--surface); }
+.spotlight-profile { display:flex; align-items:center; gap:12px; flex:1; min-width:0; padding:0; background:none; border:0; color:var(--text); text-align:left; cursor:pointer; }
+.spotlight-avatar { display:grid; place-items:center; flex:0 0 42px; width:42px; height:42px; border-radius:14px; background:color-mix(in srgb,var(--accent) 12%,var(--surface)); color:var(--accent-text); font:500 20px var(--font-display); }
+.spotlight-profile>span:last-child { min-width:0; }
+.spotlight-profile b,.spotlight-profile small { display:block; overflow-wrap:anywhere; }
+.spotlight-profile b { font-size:14px; font-weight:500; }
+.spotlight-profile small { margin-top:4px; font-size:11px; color:var(--muted); }
+.spotlight-add { display:flex; align-items:center; gap:7px; flex-shrink:0; padding:9px 12px; min-height:36px; border:1px solid var(--line); border-radius:11px; background:var(--accent); color:var(--accent-ink); font-size:11px; cursor:pointer; }
+.spotlight-add:disabled { cursor:default; color:var(--muted); background:var(--surface); }
+.spotlight-empty { display:grid; justify-items:center; padding:24px 12px; text-align:center; color:var(--muted); }
+.spotlight-empty h2 { margin:14px 0 5px; color:var(--text); font:500 19px var(--font-display); }
+.spotlight-empty p { margin:0; max-width:340px; font-size:12px; line-height:1.6; }
+.spotlight-status { display:flex; justify-content:center; align-items:center; gap:10px; margin:40px 16px; text-align:center; font-size:13px; color:var(--muted); }
+.spotlight-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 20px; border-top:1px solid var(--line); font-size:10px; line-height:1.6; color:var(--muted); }
+.spotlight-footer>span:last-child { white-space:nowrap; }
+.spotlight-footer kbd { border:1px solid var(--line); border-radius:5px; padding:3px 5px; font:9px var(--font-mono); }
+.community-spotlight button:focus-visible { outline:2px solid var(--accent-text); outline-offset:3px; }
+.spotlight-spinner { animation:spotlight-spin 1s linear infinite; }
+@keyframes spotlight-spin { to { transform:rotate(360deg); } }
+@keyframes spotlight-enter { from { opacity:0; transform:translateY(-8px) scale(.98); } to { opacity:1; transform:none; } }
+@media(max-width:600px) { .spotlight-search { padding:16px; gap:10px; }.spotlight-search input { font-size:18px; }.spotlight-footer { align-items:flex-start; }.spotlight-add { padding:8px; } }
+@media(prefers-reduced-motion:reduce) { .community-spotlight[open],.spotlight-spinner { animation:none; } }

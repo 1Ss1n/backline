@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Pause, Play } from 'lucide-react'
 import VolumeKnob from './VolumeKnob.jsx'
 import KaraokeLyrics from './KaraokeLyrics.jsx'
 import AudioSpectrum from './AudioSpectrum.jsx'
@@ -41,9 +42,9 @@ export default function PerformancePlayer({ trackInfo, stems, lyricsLines, perfo
   }
 
   return <div className="player-workspace performance-workspace"><div className="player-core">
-    <div className="stage"><AudioSpectrum audioRef={instruRef} /><div className="track-seek"><span>{formatTime(currentTime)}</span><input type="range" min="0" max={duration || 0} step="0.1" value={Math.min(currentTime, duration || currentTime)} style={{ '--seek-progress': `${duration ? Math.min(100, currentTime / duration * 100) : 0}%` }} onChange={(event) => seekTo(event.target.value)} /><span>{formatTime(duration)}</span></div><div className="track-meta"><strong>{trackInfo?.title}</strong> — votre performance</div><KaraokeLyrics lines={lyricsLines} currentTime={currentTime} /></div>
+    <div className="stage"><AudioSpectrum audioRef={instruRef} /><div className="track-seek"><span>{formatTime(currentTime)}</span><input aria-label="Position dans la performance" type="range" min="0" max={duration || 0} step="0.1" value={Math.min(currentTime, duration || currentTime)} style={{ '--seek-progress': `${duration ? Math.min(100, currentTime / duration * 100) : 0}%` }} onChange={(event) => seekTo(event.target.value)} /><span>{formatTime(duration)}</span></div><div className="track-meta"><strong>{trackInfo?.title}</strong> — votre performance</div><KaraokeLyrics audioRef={instruRef} lines={lyricsLines} duration={duration} currentTime={currentTime} /></div>
     <audio ref={instruRef} src={getAudioUrl(stems?.instruUrl)} onTimeUpdate={syncTime} onLoadedMetadata={() => setDuration(instruRef.current?.duration ?? 0)} onEnded={() => { voiceRef.current?.pause(); setIsPlaying(false) }} />
     <audio ref={voiceRef} src={getAudioUrl(performance?.url)} />
-    <div className="console"><div className="transport"><button onClick={togglePlay}>{isPlaying ? 'Ⅱ' : '▶'}</button><span className="timecode">{formatTime(currentTime)}</span></div><VolumeKnob label="Votre voix" variant="vocal" value={voiceVol} onChange={setVoiceVol} /><VolumeKnob label="Instru" variant="instru" value={instruVol} onChange={setInstruVol} /></div>
+    <div className="console"><div className="transport"><button onClick={togglePlay} aria-label={isPlaying ? 'Mettre en pause' : 'Lire la performance'}>{isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />}</button><span className="timecode">{formatTime(currentTime)}</span></div><VolumeKnob label="Votre voix" variant="vocal" value={voiceVol} onChange={setVoiceVol} /><VolumeKnob label="Instru" variant="instru" value={instruVol} onChange={setInstruVol} /></div>
   </div></div>
 }
